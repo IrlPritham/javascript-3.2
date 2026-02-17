@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Online Shopping Cart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0b0b0b;
+    color: #eeeeee;
+}
+.container {
+    max-width: 1000px;
+    margin: 20px auto;
+    background: #181818;
+    padding: 20px;
+    border-radius: 8px;
+}
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.products {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+.product {
+    background: #202020;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 14px;
+}
+.product img {
+    width: 100%;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+.product-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+.product-price {
+    color: #93c5fd;
+    margin-bottom: 6px;
+}
+button {
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    cursor: pointer;
+}
+button:hover {
+    background: #1d4ed8;
+}
+.cart-section {
+    margin-top: 25px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+th, td {
+    border-bottom: 1px solid #333333;
+    padding: 8px;
+    text-align: left;
+}
+.qty-input {
+    width: 60px;
+    padding: 4px;
+    background: #222222;
+    border: 1px solid #444444;
+    color: #eeeeee;
+    border-radius: 4px;
+}
+.total-box {
+    margin-top: 10px;
+    padding: 10px;
+    background: #101010;
+    border-radius: 4px;
+}
+.section {
+    display: none;
+}
+.section.active {
+    display: block;
+}
+label {
+    display: block;
+    margin: 8px 0 4px;
+}
+input {
+    width: 100%;
+    padding: 8px;
+    background: #222222;
+    border-radius: 4px;
+    border: 1px solid #444444;
+    color: #eeeeee;
+    box-sizing: border-box;
+}
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.actions button {
+    flex: 1;
+}
+.small {
+    font-size: 13px;
+    color: #bbbbbb;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Online Shopping Cart</h1>
+
+    <div id="shopStep1" class="section active">
+        <h2>Products</h2>
+        <div class="products" id="productList"></div>
+
+        <div class="cart-section">
+            <h2>Cart</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Price (₹)</th>
+                        <th>Qty</th>
+                        <th>Subtotal (₹)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cartBody"></tbody>
+            </table>
+            <div class="total-box">
+                <span id="cartTotalText">Total: ₹0</span>
+            </div>
+            <p class="small">Update quantities or remove items as needed.</p>
+            <button id="toCheckout" style="margin-top:10px;">Proceed to Checkout</button>
+        </div>
+    </div>
+
+    <div id="shopStep2" class="section">
+        <h2>Checkout Details</h2>
+        <label>Username</label>
+        <input type="text" id="custName">
+        <label>Shipping Address</label>
+        <input type="text" id="custAddress">
+        <label>Phone Number</label>
+        <input type="tel" id="custPhone">
+        <label>Email ID</label>
+        <input type="email" id="custEmail">
+        <div class="actions">
+            <button id="backToCart">Back</button>
+            <button id="toOrderSummary">Review Order</button>
+        </div>
+    </div>
+
+    <div id="shopStep3" class="section">
+        <h2>Order Summary</h2>
+        <div class="total-box" id="orderSummaryBox"></div>
+        <div class="actions">
+            <button id="backToDetails">Back</button>
+            <button id="placeOrder">Place Order</button>
+        </div>
+    </div>
+
+    <div id="shopStep4" class="section">
+        <h2>Order Placed</h2>
+        <div class="total-box" id="finalOrderBox"></div>
+    </div>
+</div>
+
+<script>
+var products = [
+    { id: 1, name: "Headphones", price: 999, desc: "Wired over-ear headphones." },
+    { id: 2, name: "Mouse", price: 499, desc: "Optical USB mouse." },
+    { id: 3, name: "Keyboard", price: 899, desc: "Standard wired keyboard." },
+    { id: 4, name: "Pendrive", price: 599, desc: "32GB USB pendrive." }
+];
+var cart = [];
+var customer = {};
+
+function showShopStep(n) {
+    ["shopStep1","shopStep2","shopStep3","shopStep4"].forEach(function(id){
+        var s = document.getElementById(id);
+        if (s) s.classList.remove("active");
+    });
+    var step = document.getElementById("shopStep" + n);
+    if (step) step.classList.add("active");
+}
+
+function renderProducts() {
+    var list = document.getElementById("productList");
+    list.innerHTML = "";
+    products.forEach(function (p) {
+        var div = document.createElement("div");
+        div.className = "product";
+        var img = document.createElement("img");
+        img.src = "https://via.placeholder.com/200x140?text=" + encodeURIComponent(p.name);
+        div.appendChild(img);
+        var title = document.createElement("div");
+        title.className = "product-title";
+        title.textContent = p.name;
+        div.appendChild(title);
+        var desc = document.createElement("div");
+        desc.textContent = p.desc;
+        div.appendChild(desc);
+        var price = document.createElement("div");
+        price.className = "product-price";
+        price.textContent = "₹" + p.price;
+        div.appendChild(price);
+        var btn = document.createElement("button");
+        btn.textContent = "Add to Cart";
+        btn.dataset.id = p.id;
+        btn.addEventListener("click", function () {
+            addToCart(p.id);
+        });
+        div.appendChild(btn);
+        list.appendChild(div);
+    });
+}
+
+function addToCart(id) {
+    var item = cart.find(function (c) { return c.id === id; });
+    if (item) {
+        item.qty += 1;
+    } else {
+        var prod = products.find(function (p) { return p.id === id; });
+        if (prod) {
+            cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
+        }
+    }
+    renderCart();
+}
+
+function removeFromCart(id) {
+    cart = cart.filter(function (c) { return c.id !== id; });
+    renderCart();
+}
+
+function renderCart() {
+    var body = document.getElementById("cartBody");
+    body.innerHTML = "";
+    var total = 0;
+    cart.forEach(function (item) {
+        var tr = document.createElement("tr");
+
+        var tdName = document.createElement("td");
+        tdName.textContent = item.name;
+        tr.appendChild(tdName);
+
+        var tdPrice = document.createElement("td");
+        tdPrice.textContent = item.price;
+        tr.appendChild(tdPrice);
+
+        var tdQty = document.createElement("td");
+        var input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.value = item.qty;
+        input.className = "qty-input";
+        input.addEventListener("change", function () {
+            var val = parseInt(input.value);
+            if (isNaN(val) || val < 1) {
+                val = 1;
+                input.value = 1;
+            }
+            item.qty = val;
+            renderCart();
+        });
+        tdQty.appendChild(input);
+        tr.appendChild(tdQty);
+
+        var subtotal = item.price * item.qty;
+        total += subtotal;
+        var tdSub = document.createElement("td");
+        tdSub.textContent = subtotal;
+        tr.appendChild(tdSub);
+
+        var tdAct = document.createElement("td");
+        var btn = document.createElement("button");
+        btn.textContent = "Remove";
+        btn.addEventListener("click", function () {
+            removeFromCart(item.id);
+        });
+        tdAct.appendChild(btn);
+        tr.appendChild(tdAct);
+
+        body.appendChild(tr);
+    });
+    document.getElementById("cartTotalText").textContent = "Total: ₹" + total;
+}
+
+document.getElementById("toCheckout").addEventListener("click", function () {
+    if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+    }
+    showShopStep(2);
+});
+
+document.getElementById("backToCart").addEventListener("click", function () {
+    showShopStep(1);
+});
+
+document.getElementById("toOrderSummary").addEventListener("click", function () {
+    var name = document.getElementById("custName").value.trim();
+    var addr = document.getElementById("custAddress").value.trim();
+    var phone = document.getElementById("custPhone").value.trim();
+    var email = document.getElementById("custEmail").value.trim();
+    if (name === "" || addr === "" || phone === "" || email === "") {
+        alert("Please fill all fields.");
+        return;
+    }
+    if (phone.length < 10) {
+        alert("Enter valid phone number.");
+        return;
+    }
+    if (email.indexOf("@") === -1 || email.indexOf(".") === -1) {
+        alert("Enter valid email.");
+        return;
+    }
+    customer.name = name;
+    customer.addr = addr;
+    customer.phone = phone;
+    customer.email = email;
+
+    var box = document.getElementById("orderSummaryBox");
+    var total = 0;
+    var html = "";
+    html += "<p><strong>Name:</strong> " + customer.name + "</p>";
+    html += "<p><strong>Address:</strong> " + customer.addr + "</p>";
+    html += "<p><strong>Phone:</strong> " + customer.phone + "</p>";
+    html += "<p><strong>Email:</strong> " + customer.email + "</p>";
+    html += "<hr>";
+    html += "<p><strong>Items:</strong></p>";
+    html += "<ul>";
+    cart.forEach(function (item) {
+        var sub = item.price * item.qty;
+        total += sub;
+        html += "<li>" + item.name + " x " + item.qty + " = ₹" + sub + "</li>";
+    });
+    html += "</ul>";
+    html += "<p><strong>Total Amount:</strong> ₹" + total + "</p>";
+    box.innerHTML = html;
+
+    showShopStep(3);
+});
+
+document.getElementById("backToDetails").addEventListener("click", function () {
+    showShopStep(2);
+});
+
+document.getElementById("placeOrder").addEventListener("click", function () {
+    var box = document.getElementById("finalOrderBox");
+    box.innerHTML = document.getElementById("orderSummaryBox").innerHTML;
+    showShopStep(4);
+});
+
+renderProducts();
+renderCart();
+</script>
+</body>
+</html>
